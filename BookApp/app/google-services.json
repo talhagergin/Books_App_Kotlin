@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "963443748910",
+    "project_id": "book-app-affef",
+    "storage_bucket": "book-app-affef.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:963443748910:android:9f3bd06f510dd030daafbf",
+        "android_client_info": {
+          "package_name": "com.example.bookapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC6LW0xRp_AXVMOJzomBcJk1Ep22MF3yOU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
