@@ -12,10 +12,16 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
+import com.google.firebase.messaging.FirebaseMessaging
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 
 class SplashActivity : AppCompatActivity() {
     private val TAG = "SplashActivity"
     private lateinit var firebaseAuth: FirebaseAuth
+    private val PERMISSION_REQUEST_CODE = 1001
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -25,6 +31,20 @@ class SplashActivity : AppCompatActivity() {
             Log.d(TAG, "SplashActivity started")
             checkVersion()
             firebaseAuth = FirebaseAuth.getInstance()
+
+            // Bildirim iznini iste
+            requestNotificationPermission()
+
+            // FCM Token'ı al
+            FirebaseMessaging.getInstance().token.addOnCompleteListener {
+                if (!it.isSuccessful) {
+                    Log.w(TAG, "Fetching FCM registration token failed", it.exception)
+                    return@addOnCompleteListener
+                }
+                val token = it.result
+                Log.d(TAG, "FCM Registration Token: $token")
+                // Token'ı bir sunucuya gönderebilirsiniz
+            }
             
             Handler(Looper.getMainLooper()).postDelayed({
                 checkUser()
@@ -34,6 +54,26 @@ class SplashActivity : AppCompatActivity() {
             Toast.makeText(this, "Uygulama başlatılırken bir hata oluştu", Toast.LENGTH_LONG).show()
             startActivity(Intent(this, MainActivity::class.java))
             finish()
+        }
+    }
+
+    private fun requestNotificationPermission() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), PERMISSION_REQUEST_CODE)
+            }
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Log.d(TAG, "POST_NOTIFICATIONS permission granted")
+            } else {
+                Log.d(TAG, "POST_NOTIFICATIONS permission denied")
+                Toast.makeText(this, "Bildirim izni reddedildi. Uygulamanın bildirim göndermesi kısıtlanabilir.", Toast.LENGTH_LONG).show()
+            }
         }
     }
 

@@ -14,6 +14,7 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
+import com.google.firebase.messaging.FirebaseMessaging
 
 class DashboardAdminActivity : AppCompatActivity() {
     private val TAG = "DashboardAdminActivity"
@@ -70,6 +71,17 @@ class DashboardAdminActivity : AppCompatActivity() {
         //Kullanıcı yönetimi butonu ekle
         binding.manageUsersBtn.setOnClickListener {
             showUserManagementDialog()
+        }
+
+        //Takvim butonu ekle
+        binding.calendarBtn.setOnClickListener {
+            startActivity(Intent(this, CalendarActivity::class.java))
+        }
+
+        //Bildirim Gönder butonu
+        binding.sendNotificationBtn.setOnClickListener {
+            subscribeToTopic("allNotifications")
+            Toast.makeText(this, "Bildirimler için abone olundu. Firebase Console'dan bildirim gönderebilirsiniz.", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -173,5 +185,17 @@ class DashboardAdminActivity : AppCompatActivity() {
             val email = firebaseUser.email
             binding.subTittleTv.text = email
         }
+    }
+
+    private fun subscribeToTopic(topic: String) {
+        FirebaseMessaging.getInstance().subscribeToTopic(topic)
+            .addOnCompleteListener { task ->
+                var msg = "Abone olundu"
+                if (!task.isSuccessful) {
+                    msg = "Abone olma başarısız oldu"
+                }
+                Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+                Log.d(TAG, msg)
+            }
     }
 }
