@@ -1,13 +1,14 @@
 package com.example.bookapp
 
-import android.app.ProgressDialog
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Patterns
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
 import com.example.bookapp.databinding.ActivityRegisterBinding
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 
@@ -18,8 +19,8 @@ class RegisterActivity : AppCompatActivity() {
     //firebase auth
     private lateinit var firebaseAuth: FirebaseAuth
 
-    //progress dialog
-    private lateinit var progresDialog: ProgressDialog
+    //loading dialog
+    private lateinit var loadingDialog: MaterialAlertDialogBuilder
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,15 +30,17 @@ class RegisterActivity : AppCompatActivity() {
         //init firebase auth
         firebaseAuth = FirebaseAuth.getInstance()
 
-        //init progres
-        progresDialog = ProgressDialog(this)
-        progresDialog.setTitle("Lütfen bekleyiniz...")
-        progresDialog.setCanceledOnTouchOutside(false)
+        //init loading dialog
+        loadingDialog = MaterialAlertDialogBuilder(this)
+            .setView(R.layout.loading_dialog)
+            .setCancelable(false)
 
         //handle back button click
-        binding.backBtn.setOnClickListener{
-            onBackPressed() // önceki ekrana gider
-        }
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                finish()
+            }
+        })
 
         //handle click register begin
         binding.registerBtn.setOnClickListener {
@@ -49,7 +52,7 @@ class RegisterActivity : AppCompatActivity() {
     private var email = ""
     private var password = ""
 
-    private fun validateData(){
+    private fun validateData() {
         //veri giriş
         name = binding.nameEt.text.toString().trim()
         email = binding.emailEt.text.toString().trim()
@@ -57,45 +60,42 @@ class RegisterActivity : AppCompatActivity() {
         val confirm_password = binding.confirmPasswordEt.text.toString().trim()
 
         //veri kontrolleri
-        if(name.isEmpty()){
-            Toast.makeText(this,"İsminizi giriniz...",Toast.LENGTH_SHORT).show()
-        }else if(!Patterns.EMAIL_ADDRESS.matcher(email).matches()){
+        if (name.isEmpty()) {
+            Toast.makeText(this, "İsminizi giriniz...", Toast.LENGTH_SHORT).show()
+        } else if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
             //geçersiz email
-            Toast.makeText(this,"Geçerli bir e-posta giriniz...",Toast.LENGTH_SHORT).show()
-        }else if(password.isEmpty()){
+            Toast.makeText(this, "Geçerli bir e-posta giriniz...", Toast.LENGTH_SHORT).show()
+        } else if (password.isEmpty()) {
             //şifre boş ise
-            Toast.makeText(this,"Şifrenizi giriniz...",Toast.LENGTH_SHORT).show()
-        }else if(confirm_password.isEmpty()){
-            Toast.makeText(this,"Şifrenizi tekrar giriniz...",Toast.LENGTH_SHORT).show()
-        }else if(password != confirm_password){
-            Toast.makeText(this,"Şifreler uyuşmuyor...",Toast.LENGTH_SHORT).show()
-        }else{
+            Toast.makeText(this, "Şifrenizi giriniz...", Toast.LENGTH_SHORT).show()
+        } else if (confirm_password.isEmpty()) {
+            Toast.makeText(this, "Şifrenizi tekrar giriniz...", Toast.LENGTH_SHORT).show()
+        } else if (password != confirm_password) {
+            Toast.makeText(this, "Şifreler uyuşmuyor...", Toast.LENGTH_SHORT).show()
+        } else {
             //veri girişinde sorun yok veritabanına kayıt işlemi
             createUserAccount()
         }
-
     }
 
     private fun createUserAccount() {
-        progresDialog.setMessage("Kaydınız Oluşturuluyor Lütfen Bekleyiniz...")
-        progresDialog.show()
+        val dialog = loadingDialog.create()
+        dialog.show()
 
         //firebase kullanıcı oluşturma
-        firebaseAuth.createUserWithEmailAndPassword(email,password)
+        firebaseAuth.createUserWithEmailAndPassword(email, password)
             .addOnSuccessListener {
                 //hesap oluşturuldu
-                updateUserInfo()
+                updateUserInfo(dialog)
             }
-            .addOnFailureListener {e->
+            .addOnFailureListener { e ->
                 //patladı
-                progresDialog.dismiss()
-                Toast.makeText(this,"Hesabınız oluşturulurken bir hata oluştu ${e.message}",Toast.LENGTH_SHORT).show()
+                dialog.dismiss()
+                Toast.makeText(this, "Hesabınız oluşturulurken bir hata oluştu ${e.message}", Toast.LENGTH_SHORT).show()
             }
     }
 
-    private fun updateUserInfo() {
-        progresDialog.setMessage("Kişisel bilgileriniz kaydediliyor...")
-
+    private fun updateUserInfo(dialog: AlertDialog) {
         //timestamp
         val timestamp = System.currentTimeMillis()
 
@@ -114,16 +114,15 @@ class RegisterActivity : AppCompatActivity() {
             .setValue(hashMap)
             .addOnSuccessListener {
                 //kullanıcnı bilgileri kaydedildi ana menüyü aç
-                progresDialog.dismiss()
-                Toast.makeText(this,"Hesabınız başarıyla oluşturuldu...",Toast.LENGTH_SHORT).show()
-                startActivity(Intent(this@RegisterActivity,DashboardUserActivity::class.java))
+                dialog.dismiss()
+                Toast.makeText(this, "Hesabınız başarıyla oluşturuldu...", Toast.LENGTH_SHORT).show()
+                startActivity(Intent(this@RegisterActivity, DashboardUserActivity::class.java))
                 finish()
-
             }
-            .addOnFailureListener {e->
+            .addOnFailureListener { e ->
                 //patladı
-                progresDialog.dismiss()
-                Toast.makeText(this,"Kullanıcı bilglileri kaydedilirken bir hata oluştu ${e.message}",Toast.LENGTH_SHORT).show()
+                dialog.dismiss()
+                Toast.makeText(this, "Kullanıcı bilglileri kaydedilirken bir hata oluştu ${e.message}", Toast.LENGTH_SHORT).show()
             }
     }
 }

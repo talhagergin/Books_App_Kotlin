@@ -1,9 +1,12 @@
 package com.example.bookapp
 
 import android.content.Intent
+import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Handler
+import android.os.Looper
+import android.widget.Toast
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -11,55 +14,108 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 
 class SplashActivity : AppCompatActivity() {
-
+    private val TAG = "SplashActivity"
     private lateinit var firebaseAuth: FirebaseAuth
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_splash)
-        checkVersion()
-        firebaseAuth = FirebaseAuth.getInstance()
-        Handler().postDelayed({
-        checkUser()
-        },1000,) // 1 saniye delay
-    }
-private fun checkVersion(){
-    val versionCode = BuildConfig.VERSION_CODE
-    val versionName = BuildConfig.VERSION_NAME
-}
-
-
-    private fun checkUser() {
-        //giriş yapan kullanıcı varsa bakıcaz
-        val firebaseUser = firebaseAuth.currentUser
-        if(firebaseUser == null){
-            //kullanıcı girişi yok ana menüye
-            startActivity(Intent(this,MainActivity::class.java))
+        
+        try {
+            Log.d(TAG, "SplashActivity started")
+            checkVersion()
+            firebaseAuth = FirebaseAuth.getInstance()
+            
+            Handler(Looper.getMainLooper()).postDelayed({
+                checkUser()
+            }, 1000) // 1 saniye delay
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in onCreate", e)
+            Toast.makeText(this, "Uygulama başlatılırken bir hata oluştu", Toast.LENGTH_LONG).show()
+            startActivity(Intent(this, MainActivity::class.java))
             finish()
         }
-        else{
-            //kullanıcı tip kontrol
+    }
 
-            val ref = FirebaseDatabase.getInstance().getReference("Users")
-            ref.child(firebaseUser.uid)
-                .addListenerForSingleValueEvent(object : ValueEventListener {
-                    override fun onDataChange(snapshot: DataSnapshot) {
+    private fun checkVersion() {
+        try {
+            val versionCode = BuildConfig.VERSION_CODE
+            val versionName = BuildConfig.VERSION_NAME
+            Log.d(TAG, "App version: $versionName ($versionCode)")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error checking version", e)
+        }
+    }
 
-                        //kullanıcı bilgilerini getir kullanıcı ya da admin
-                        val userType = snapshot.child("userType").value
-                        if(userType == "user"){
-                            startActivity(Intent(this@SplashActivity,DashboardUserActivity::class.java))
+    private fun checkUser() {
+        try {
+            Log.d(TAG, "Checking user authentication status")
+            //giriş yapan kullanıcı varsa bakıcaz
+            val firebaseUser = firebaseAuth.currentUser
+            if (firebaseUser == null) {
+                //kullanıcı girişi yok ana menüye
+                Log.d(TAG, "No user logged in, going to MainActivity")
+                startActivity(Intent(this, MainActivity::class.java))
+                finish()
+            } else {
+                //kullanıcı tip kontrol
+                Log.d(TAG, "User logged in, checking user type for uid: ${firebaseUser.uid}")
+                val ref = FirebaseDatabase.getInstance().getReference("Users")
+                ref.child(firebaseUser.uid)
+                    .addListenerForSingleValueEvent(object : ValueEventListener {
+                        override fun onDataChange(snapshot: DataSnapshot) {
+                            try {
+                                if (!snapshot.exists()) {
+                                    Log.e(TAG, "User data not found in database")
+                                    Toast.makeText(this@SplashActivity, "Kullanıcı bilgileri bulunamadı", Toast.LENGTH_LONG).show()
+                                    startActivity(Intent(this@SplashActivity, MainActivity::class.java))
+                                    finish()
+                                    return
+                                }
+
+                                //kullanıcı bilgilerini getir kullanıcı ya da admin
+                                val userType = snapshot.child("userType").value as? String
+                                Log.d(TAG, "User type: $userType")
+
+                                when (userType) {
+                                    "user" -> {
+                                        Log.d(TAG, "User type is user, going to DashboardUserActivity")
+                                        startActivity(Intent(this@SplashActivity, DashboardUserActivity::class.java))
+                                        finish()
+                                    }
+                                    "admin" -> {
+                                        Log.d(TAG, "User type is admin, going to DashboardAdminActivity")
+                                        startActivity(Intent(this@SplashActivity, DashboardAdminActivity::class.java))
+                                        finish()
+                                    }
+                                    else -> {
+                                        Log.e(TAG, "Invalid user type: $userType")
+                                        Toast.makeText(this@SplashActivity, "Geçersiz kullanıcı tipi", Toast.LENGTH_LONG).show()
+                                        startActivity(Intent(this@SplashActivity, MainActivity::class.java))
+                                        finish()
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Error processing user data", e)
+                                Toast.makeText(this@SplashActivity, "Kullanıcı bilgileri işlenirken hata oluştu", Toast.LENGTH_LONG).show()
+                                startActivity(Intent(this@SplashActivity, MainActivity::class.java))
+                                finish()
+                            }
+                        }
+
+                        override fun onCancelled(error: DatabaseError) {
+                            Log.e(TAG, "Database error: ${error.message}")
+                            Toast.makeText(this@SplashActivity, "Veritabanı hatası: ${error.message}", Toast.LENGTH_LONG).show()
+                            startActivity(Intent(this@SplashActivity, MainActivity::class.java))
                             finish()
                         }
-                        else if(userType =="admin"){
-                            startActivity(Intent(this@SplashActivity,DashboardAdminActivity::class.java))
-                            finish()
-                        }
-                    }
-                    override fun onCancelled(error: DatabaseError) {
-
-                    }
-                })
+                    })
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in checkUser", e)
+            Toast.makeText(this, "Kullanıcı kontrolü sırasında bir hata oluştu", Toast.LENGTH_LONG).show()
+            startActivity(Intent(this, MainActivity::class.java))
+            finish()
         }
     }
 }

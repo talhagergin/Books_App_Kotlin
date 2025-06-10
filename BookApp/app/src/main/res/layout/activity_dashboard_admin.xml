@@ -68,6 +68,17 @@
         android:layout_margin="5dp"
         tools:listitem="@layout/row_category"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"/>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/manageUsersBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Kullanıcı Yönetimi"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/categoriesRv" />
+
     <!--Bottom Layout (Category) -->
     <LinearLayout
         android:id="@+id/bottomLl"
